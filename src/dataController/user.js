@@ -1,8 +1,14 @@
-const loginVerify = (username, password) => {
-  if (username === 'lucy' && password === '12345') return true
-  return false
+const { exec } = require('../db/mysql')
+
+const login = (username, password) => {
+  const sql = `
+    select username, realname from users where username='${username}' and password='${password}'
+  `
+  return exec(sql).then(res => {
+    return res[0] || {}
+  })
 }
 
 module.exports = {
-  loginVerify
+  login
 }

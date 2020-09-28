@@ -13,33 +13,47 @@ const getList = (author, keyWord) => {
 }
 
 const getDetail = (id) => {
-  return {
-    id: 1,
-    title: '博客标题A',
-    content: '博客内容A',
-    createTime: 1600865592695,
-    author: 'lucy'
-  }
+  const sql = `select * from blogs where id='${id}';`
+  return exec(sql).then(res => {
+    return res[0]
+  })
 }
 
 const createBlog = (params = {}) => {
-  console.log(params)
-  return {
-    id: 3,
-    ...params
-  }
+  const { title, content, author } = params
+  const sql = `
+    insert into blogs(title, content, createtime, author) 
+    values('${title}','${content}','${Date.now()}','${author}')`
+
+  return exec(sql).then(res => {
+    return {
+      id: res.insertId
+    }
+  })
 }
 
 const editBlog = (id, params = {}) => {
-  return {
-    id,
-    ...params
-  }
+  const { title, content } = params
+  const sql = `
+    update blogs set title='${title}', content='${content}' where id='${id}';
+  `
+  return exec(sql).then(res => {
+    return res.affectedRows >= 1
+  })
+}
+
+const deleteBlog = (id, author) => {
+  const sql = `delete from blogs where id='${id}' and author='${author}';`
+
+  return exec(sql).then(res => {
+    return res.affectedRows >= 1
+  })
 }
 
 module.exports = {
   getList,
   getDetail,
   createBlog,
-  editBlog
+  editBlog,
+  deleteBlog
 }
