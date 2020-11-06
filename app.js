@@ -1,6 +1,8 @@
 const querystring = require('querystring')
 const serverBlogHandle = require('./src/router/blog')
 const serverUserHandle = require('./src/router/user')
+const redisHandle = require('./src/db/redis')
+const { access } = require('./src/utils/log')
 
 const SESSION_DATA = {}
 
@@ -23,7 +25,9 @@ const getCookie = (req) => {
   return cookieObj
 }
 
-const serverHandle = (req, res) => {
+const serverHandle = async (req, res) => {
+  // 记录日志
+  access(`${req.method} -- ${req.url} -- ${Date.now()}`)
   res.setHeader('content-type', 'application/json')
 
   // 获取接口地址
@@ -37,19 +41,24 @@ const serverHandle = (req, res) => {
   // 解析session
   let needSetCookie = false
   let userId = req.cookie.userid
+
+  console.log(userId)
+
   if(userId) {
-    if(!SESSION_DATA[userId]) {
-      SESSION_DATA[userId] = {}
-    }
+    // if(!SESSION_DATA[userId]) {
+      // SESSION_DATA[userId] = {}
+      // }
+    req.userId = userId
+    const userInfo = await redisHandle.get(userId)
+    req.session = userInfo
   } else {
     needSetCookie = true
     userId = `${Date.now()}_${Math.random()}`
-    SESSION_DATA[userId] = {}
+    req.userId = userId
+    // SESSION_DATA[userId] = {}
+    redisHandle.set(userId, {})
   }
 
-  // 登录成功时改变 req.session 的值， 因为引用数据类型，SESSION_DATA[userId] 也会改变
-  // SESSION_DATA:{ '时间戳+随机数'：{} }
-  req.session = SESSION_DATA[userId]
 
   getPostData(req).then(postData => {
     req.body = postData
@@ -66,7 +75,6 @@ const serverHandle = (req, res) => {
       return
     }
     let userData = serverUserHandle(req, res)
-    
     if (userData) {
       userData.then(loginRes => {
         if(needSetCookie) {
@@ -90,7 +98,8 @@ const serverHandle = (req, res) => {
 
 function getPostData (req) {
   return new Promise((resolve, reject) => {
-    if (req.method !== 'POST' || req.headers['content-type'] !== 'application/json') {
+    console.log("req.headers['content-type']:", req.headers['content-type'])
+    if (req.method !== 'POST' || !req.headers['content-type'].includes('application/json')) {
       return resolve({})
     }
     let data = '';
