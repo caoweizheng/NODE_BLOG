@@ -1,6 +1,6 @@
 // mysql config
 const MYSQL_CONFIG = {
-  host: 'localhost',
+  host: '121.4.100.175',
   user: 'root',
   password: '123456',
   port: '3306',
